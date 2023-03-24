@@ -10,18 +10,19 @@ function [tvals, varargout] = mat_paired_ttests(mat1, mat2, cfg)
 %
 %% necessary for permutation (fields + examples)
 % cfg.alphat = .05;
-% cfg.clustalplha_thresh = .05;
+% cfg.clustalpha_thresh = .05;
 % cfg.nperm = 500;
 %
 %% wanna be fancy?
 % cfg.plot = true
 %
 %% synopsis
-% [tvals, p, clusterstat, signcluster_mask] = mat_paired_ttests(mat1, mat2, cfg)
+% [tvals, clusterstat, signcluster_mask] = mat_paired_ttests(mat1, mat2, cfg)
 
 % copy, correct, do whatever you want with this function. But at least
 % thank me, or buy me a coffee when you meet me.
-% started by eb 28-Jan-2020     
+% started: eb 28-Jan-2020     
+% bug corrected in "both" tails mode: eb 24-Mar-2023
 
 %% ttest part
 [tvals, crit_t] = local_ttest(mat1, mat2, cfg);
@@ -74,7 +75,8 @@ if isfield(cfg, 'plot')
 end
 
 % varargout
-varargout{1} = clusterstat;
+varargout{1} = array2table(clusterstat, 'VariableNames', {'cluster_ID', ...
+                           'cluster_mass_stat', 'p_val'});
 varargout{2} = signcluster_mask;
 
 
@@ -232,18 +234,18 @@ for iClusts = 1:nclusts
 
             end
 
-            p_c1 = 2*p_c1;
+            p_cl = 2*p_cl;
 
     end
 
     if isempty(p_cl); p_cl = 1; end
+    if p_cl>1; p_cl = 1; end
+    if p_cl==0; p_cl = 1/cfg.nperm; end
         
     clusterstat(iClusts, 3) = p_cl;
 
 end
 
-
-foo = 1;
 
 end
 
@@ -253,7 +255,7 @@ function signcluster_mask = local_mask(clusterstat, clustermap, cfg)
 
 if size(clusterstat, 2) > 2
 
-    who_is_significant = find(clusterstat(:,3)<cfg.clustalplha_thresh)';
+    who_is_significant = find(clusterstat(:,3)<cfg.clustalpha_thresh)';
 
     signcluster_mask = false(size(clustermap));
 
